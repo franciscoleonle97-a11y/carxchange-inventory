@@ -1,0 +1,140 @@
+CREATE TABLE vehicles( 
+vehicle_id SERIAL PRIMARY KEY NOT NULL, 
+year SMALLINT NOT NULL, 
+VIN VARCHAR(17) UNIQUE NOT NULL,
+make VARCHAR(50) NOT NULL, 
+model VARCHAR(100) NOT NULL 
+); 
+CREATE TABLE listings ( 
+vehicle_id INTEGER REFERENCES vehicles(vehicle_id), 
+price INTEGER NOT NULL, 
+mileage INTEGER NOT NULL,
+profit NUMERIC
+); 
+CREATE TABLE regions ( 
+vehicle_id INTEGER REFERENCES vehicles(vehicle_id), 
+city VARCHAR(100) NOT NULL, 
+state VARCHAR(5) NOT NULL, 
+region VARCHAR(20) 
+);  
+
+SELECT * FROM vehicles; --  65499 -- vehicle_id, year, vin, make, model
+SELECT * FROM listings; --  65499 -- vehicle_id, price, mileage, profit
+select * from regions; --  65499 -- vehicle_id, city, state, region
+
+/* Combine all 3 tables to create a full vehicles list and include all necessary fields */
+
+SELECT ve.vehicle_id, make, model, year, li.mileage, price, profit, re.city, state, region  
+INTO vehicles_list
+FROM vehicles ve
+JOIN listings li ON li.vehicle_id = ve.vehicle_id
+JOIN regions re ON re.vehicle_id = li.vehicle_id;
+
+/* Which car models are oversupplied */
+SELECT make, model, COUNT(*) AS vehicle_count
+INTO oversupplied_cars_count
+FROM vehicles_list
+GROUP BY make, model
+HAVING COUNT(*) > 2000
+;
+
+SELECT * FROM oversupplied_cars_count;
+
+/* Where are above oversupplied cars located */
+
+SELECT vl.make, model, re.city, re.region, re.state--, COUNT(*) as region_count
+FROM vehicles_list vl
+JOIN regions re ON re.vehicle_id = vl.vehicle_id
+WHERE model IN ('Sierra',
+				'EscapeFWD',
+				'F-1504WD',
+				'Civic',
+				'F-1502WD',
+				'Super')
+  AND make IN ('GMC',
+				'Ford',
+				'Honda'
+				)
+--GROUP BY vl.make, model, re.city, re.region, re.state
+--ORDER BY vl.make, model, re.city, re.region, re.state
+;
+
+/* Where is GMC-"Sierra" oversupply car located */
+
+SELECT vl.make, model, re.state, COUNT(*) as region_count
+FROM vehicles_list vl
+JOIN regions re ON re.vehicle_id = vl.vehicle_id
+WHERE model IN ('Sierra')
+  AND make IN ('GMC')
+GROUP BY vl.make, model, re.state
+HAVING COUNT(*) > 500
+; -- TX = 799
+
+/* Where is Ford-"EscapeFWD oversupply car located */
+
+SELECT vl.make, model, re.state, COUNT(*) as region_count
+FROM vehicles_list vl
+JOIN regions re ON re.vehicle_id = vl.vehicle_id
+WHERE model IN ('EscapeFWD')
+  AND make IN ('Ford')
+GROUP BY vl.make, model, re.state
+HAVING COUNT(*) > 100
+; -- TX = 294, FL = 245
+
+/* Where is Ford-"F-1504WD" oversupply car located - 6045 COUNT*/
+
+SELECT vl.make, model, re.state, COUNT(*) as region_count
+FROM vehicles_list vl
+JOIN regions re ON re.vehicle_id = vl.vehicle_id
+WHERE model IN ('F-1504WD')
+  AND make IN ('Ford')
+GROUP BY vl.make, model, re.state
+HAVING COUNT(*) > 200
+; -- TX = 637
+
+/* Where is Honda-"Civic" oversupply car located - 4460 COUNT*/
+
+SELECT vl.make, model, re.state, COUNT(*) as region_count
+FROM vehicles_list vl
+JOIN regions re ON re.vehicle_id = vl.vehicle_id
+WHERE model IN ('Civic')
+  AND make IN ('Honda')
+GROUP BY vl.make, model, re.state
+HAVING COUNT(*) > 500
+; -- CA = 574, FL = 510
+
+SELECT * FROM oversupplied_cars_count;
+
+/* Where is Ford-"F-1502WD" oversupply car located - 4460 COUNT*/
+
+SELECT vl.make, model, re.state, COUNT(*) as region_count
+FROM vehicles_list vl
+JOIN regions re ON re.vehicle_id = vl.vehicle_id
+WHERE model IN ('F-1502WD')
+  AND make IN ('Ford')
+GROUP BY vl.make, model, re.state
+HAVING COUNT(*) > 100
+; -- TX = 796
+
+/* Where is Ford-"Super" oversupply car located - 4460 COUNT*/
+
+SELECT vl.make, model, re.state, COUNT(*) as region_count
+FROM vehicles_list vl
+JOIN regions re ON re.vehicle_id = vl.vehicle_id
+WHERE model IN ('Super')
+  AND make IN ('Ford')
+GROUP BY vl.make, model, re.state
+HAVING COUNT(*) > 100
+; -- TX = 668
+
+
+/* The oversupplied cars list */
+SELECT * 
+INTO oversupplied_cars
+FROM vehicles_list
+WHERE (make = 'GMC' and model = 'Sierra')
+   OR (make = 'Ford' and model = 'EscapeFWD')
+   OR (make = 'Ford' and model = 'F-1504WD')
+   OR (make = 'Honda' and model = 'Civic')
+   OR (make = 'Ford' and model = 'F-1502WD')
+   OR (make = 'Ford' and model = 'Super');
